@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Điểm danh</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thanh %</title>
 
 <style>
 body{
   margin:0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+  font-family: system-ui, -apple-system;
   background: linear-gradient(180deg,#f7fbff,#eaf3ff);
-  min-height:100vh;
+  height:100vh;
   display:flex;
   justify-content:center;
   align-items:center;
@@ -18,107 +18,128 @@ body{
 
 .app{
   background:#fff;
-  width:380px;
-  padding:24px;
+  width:100%;
+  max-width:420px;
+  padding:16px 0;
   border-radius:24px;
-  box-shadow:0 20px 40px rgba(0,0,0,.12);
+  box-shadow:0 16px 36px rgba(0,0,0,.12);
 }
 
-h1{
-  text-align:center;
-  color:#1e3a8a;
-  margin-bottom:24px;
-}
-
-.bar-list{
+.bar-wrapper{
   display:flex;
-  gap:20px;
-  justify-content:center;
-  align-items:flex-end;
-  flex-wrap:wrap;
+  gap:14px;
+  padding:0 16px;
+  overflow-x:auto;
+  scroll-snap-type:x mandatory;
+}
+
+.bar-wrapper::-webkit-scrollbar{
+  display:none;
 }
 
 .bar-item{
+  flex:0 0 64px;
   display:flex;
   flex-direction:column;
   align-items:center;
+  scroll-snap-align:start;
 }
 
 .bar{
-  width:36px;
-  height:200px;
+  width:18px;
+  height:220px;
   background:#e5e7eb;
   border-radius:999px;
-  overflow:hidden;
   display:flex;
   align-items:flex-end;
+  overflow:hidden;
+  border:2px solid transparent;
+}
+
+.bar.selected{
+  border-color:#2563eb;
 }
 
 .fill{
   width:100%;
-  height:0%;
   border-radius:999px;
   transition:.25s;
 }
 
-.name{
-  margin-top:8px;
-  font-size:14px;
-  color:#334155;
+.percent{
+  font-size:12px;
+  margin:6px 0;
+  color:#0369a1;
+  font-weight:600;
 }
 
 .controls{
   display:flex;
-  gap:6px;
-  margin-top:6px;
+  gap:4px;
 }
 
 button{
   border:none;
-  padding:4px 8px;
-  border-radius:8px;
+  padding:3px 6px;
+  font-size:11px;
+  border-radius:6px;
   background:#e0f2fe;
   color:#0369a1;
   font-weight:600;
-  cursor:pointer;
 }
 
-button:hover{background:#bae6fd}
+button:active{background:#bae6fd}
+
+.name{
+  margin-top:6px;
+  font-size:12px;
+  text-align:center;
+  color:#334155;
+}
 
 .footer{
-  margin-top:20px;
   display:flex;
   justify-content:space-between;
+  padding:12px 16px 0;
 }
 
-.add-btn{
+.add{
   background:#2563eb;
   color:white;
+}
+.delete{
+  background:#fee2e2;
+  color:#991b1b;
 }
 </style>
 </head>
 
 <body>
 <div class="app">
-  <h1>Điểm danh</h1>
 
-  <div class="bar-list" id="bars"></div>
+  <div class="bar-wrapper" id="bars"></div>
 
   <div class="footer">
-    <button class="add-btn" onclick="addBar()">+ Thêm thanh</button>
-    <button onclick="removeBar()">🗑 Xóa thanh</button>
+    <button class="add" onclick="addBar()">+ Thanh</button>
+    <button class="delete" onclick="deleteBar()">Xóa</button>
   </div>
+
 </div>
 
 <script>
-let data = JSON.parse(localStorage.getItem("diemdanh")) || [
+let selected = null;
+
+let data = JSON.parse(localStorage.getItem("bars")) || [
   {name:"Việc 1", value:0},
-  {name:"Việc 2", value:0}
+  {name:"Việc 2", value:0},
+  {name:"Việc 3", value:0},
+  {name:"Việc 4", value:0},
+  {name:"Việc 5", value:0}
 ];
 
 function color(v){
-  if(v<100) return "linear-gradient(180deg,#38bdf8,#2563eb)";
-  if(v<200) return "linear-gradient(180deg,#34d399,#059669)";
+  if(v<50) return "linear-gradient(180deg,#38bdf8,#2563eb)";
+  if(v<150) return "linear-gradient(180deg,#34d399,#059669)";
   return "linear-gradient(180deg,#fb7185,#be123c)";
 }
 
@@ -130,24 +151,29 @@ function render(){
     wrap.className="bar-item";
 
     const bar=document.createElement("div");
-    bar.className="bar";
+    bar.className="bar"+(selected===i?" selected":"");
+    bar.onclick=()=>{selected=i;render()};
 
     const fill=document.createElement("div");
     fill.className="fill";
-    fill.style.height=Math.min(item.value,300)+"%";
-    fill.style.background=color(item.value);
+    fill.style.height=Math.abs(item.value)+"%";
+    fill.style.background=color(Math.abs(item.value));
 
     bar.appendChild(fill);
+
+    const percent=document.createElement("div");
+    percent.className="percent";
+    percent.textContent=item.value+"%";
 
     const ctr=document.createElement("div");
     ctr.className="controls";
 
     const minus=document.createElement("button");
-    minus.textContent="-1%";
-    minus.onclick=()=>{item.value=Math.max(0,item.value-1);save()};
+    minus.textContent="-1";
+    minus.onclick=()=>{item.value--;save()};
 
     const plus=document.createElement("button");
-    plus.textContent="+1%";
+    plus.textContent="+1";
     plus.onclick=()=>{item.value++;save()};
 
     ctr.append(minus,plus);
@@ -156,33 +182,32 @@ function render(){
     name.className="name";
     name.textContent=item.name;
     name.onclick=()=>{
-      const n=prompt("Đổi tên:",item.name);
+      const n=prompt("Tên:",item.name);
       if(n){item.name=n;save();}
     };
 
-    wrap.append(bar,ctr,name);
+    wrap.append(bar,percent,ctr,name);
     c.appendChild(wrap);
   });
 }
 
 function save(){
-  localStorage.setItem("diemdanh",JSON.stringify(data));
+  localStorage.setItem("bars",JSON.stringify(data));
   render();
 }
 
 function addBar(){
-  const name=prompt("Tên việc:");
-  if(!name) return;
-  data.push({name,value:0});
+  const n=prompt("Tên thanh:");
+  if(!n) return;
+  data.push({name:n,value:0});
   save();
 }
 
-function removeBar(){
-  if(data.length===0) return;
-  if(confirm("Xóa thanh cuối?")){
-    data.pop();
-    save();
-  }
+function deleteBar(){
+  if(selected===null) return alert("Chạm chọn thanh trước");
+  data.splice(selected,1);
+  selected=null;
+  save();
 }
 
 render();
