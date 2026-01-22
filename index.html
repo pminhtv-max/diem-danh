@@ -1,216 +1,115 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Thanh %</title>
+"use client";
+import { useEffect, useState } from "react";
 
-<style>
-body{
-  margin:0;
-  font-family: system-ui, -apple-system;
-  background: linear-gradient(180deg,#f7fbff,#eaf3ff);
-  height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
+export default function Home() {
+  const [bars, setBars] = useState([]);
+
+  // load dữ liệu
+  useEffect(() => {
+    const saved = localStorage.getItem("bars");
+    if (saved) setBars(JSON.parse(saved));
+  }, []);
+
+  // lưu dữ liệu
+  useEffect(() => {
+    localStorage.setItem("bars", JSON.stringify(bars));
+  }, [bars]);
+
+  const addBar = () => {
+    setBars([
+      ...bars,
+      { id: Date.now(), name: "Việc mới", value: 0 },
+    ]);
+  };
+
+  const updateValue = (id, delta) => {
+    setBars(
+      bars.map((b) =>
+        b.id === id ? { ...b, value: b.value + delta } : b
+      )
+    );
+  };
+
+  const renameBar = (id, name) => {
+    setBars(bars.map((b) => (b.id === id ? { ...b, name } : b)));
+  };
+
+  const deleteBar = (id) => {
+    setBars(bars.filter((b) => b.id !== id));
+  };
+
+  const getColor = (v) => {
+    if (v < 100) return "bg-blue-400";
+    if (v < 200) return "bg-green-400";
+    return "bg-purple-500";
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-white to-blue-100 p-4">
+      {/* khu vực cuộn ngang */}
+      <div
+        className="flex gap-4 overflow-x-auto pb-6"
+        style={{
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
+        {bars.map((bar) => (
+          <div
+            key={bar.id}
+            className="flex flex-col items-center w-[60px] shrink-0"
+          >
+            <button
+              onClick={() => updateValue(bar.id, 1)}
+              className="mb-2 text-lg"
+            >
+              ＋
+            </button>
+
+            {/* thanh */}
+            <div className="relative h-64 w-6 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className={`absolute bottom-0 w-full rounded-full transition-all ${getColor(
+                  bar.value
+                )}`}
+                style={{
+                  height: `${Math.max(bar.value, 0)}%`,
+                }}
+              />
+              <span className="absolute top-2 left-1/2 -translate-x-1/2 text-xs font-semibold">
+                {bar.value}%
+              </span>
+            </div>
+
+            <button
+              onClick={() => updateValue(bar.id, -1)}
+              className="mt-2 text-lg"
+            >
+              －
+            </button>
+
+            <input
+              value={bar.name}
+              onChange={(e) => renameBar(bar.id, e.target.value)}
+              className="mt-2 w-full text-xs text-center rounded"
+            />
+
+            <button
+              onClick={() => deleteBar(bar.id)}
+              className="text-red-500 text-xs mt-1"
+            >
+              xóa
+            </button>
+          </div>
+        ))}
+
+        {/* nút thêm */}
+        <button
+          onClick={addBar}
+          className="w-[60px] shrink-0 flex items-center justify-center border-2 border-dashed rounded-lg text-xl text-blue-500"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
 }
-
-.app{
-  background:#fff;
-  width:100%;
-  max-width:420px;
-  padding:16px 0;
-  border-radius:24px;
-  box-shadow:0 16px 36px rgba(0,0,0,.12);
-}
-
-.bar-wrapper{
-  display:flex;
-  gap:14px;
-  padding:0 16px;
-  overflow-x:auto;
-  scroll-snap-type:x mandatory;
-}
-
-.bar-wrapper::-webkit-scrollbar{
-  display:none;
-}
-
-.bar-item{
-  flex:0 0 64px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  scroll-snap-align:start;
-}
-
-.bar{
-  width:18px;
-  height:220px;
-  background:#e5e7eb;
-  border-radius:999px;
-  display:flex;
-  align-items:flex-end;
-  overflow:hidden;
-  border:2px solid transparent;
-}
-
-.bar.selected{
-  border-color:#2563eb;
-}
-
-.fill{
-  width:100%;
-  border-radius:999px;
-  transition:.25s;
-}
-
-.percent{
-  font-size:12px;
-  margin:6px 0;
-  color:#0369a1;
-  font-weight:600;
-}
-
-.controls{
-  display:flex;
-  gap:4px;
-}
-
-button{
-  border:none;
-  padding:3px 6px;
-  font-size:11px;
-  border-radius:6px;
-  background:#e0f2fe;
-  color:#0369a1;
-  font-weight:600;
-}
-
-button:active{background:#bae6fd}
-
-.name{
-  margin-top:6px;
-  font-size:12px;
-  text-align:center;
-  color:#334155;
-}
-
-.footer{
-  display:flex;
-  justify-content:space-between;
-  padding:12px 16px 0;
-}
-
-.add{
-  background:#2563eb;
-  color:white;
-}
-.delete{
-  background:#fee2e2;
-  color:#991b1b;
-}
-</style>
-</head>
-
-<body>
-<div class="app">
-
-  <div class="bar-wrapper" id="bars"></div>
-
-  <div class="footer">
-    <button class="add" onclick="addBar()">+ Thanh</button>
-    <button class="delete" onclick="deleteBar()">Xóa</button>
-  </div>
-
-</div>
-
-<script>
-let selected = null;
-
-let data = JSON.parse(localStorage.getItem("bars")) || [
-  {name:"Việc 1", value:0},
-  {name:"Việc 2", value:0},
-  {name:"Việc 3", value:0},
-  {name:"Việc 4", value:0},
-  {name:"Việc 5", value:0}
-];
-
-function color(v){
-  if(v<50) return "linear-gradient(180deg,#38bdf8,#2563eb)";
-  if(v<150) return "linear-gradient(180deg,#34d399,#059669)";
-  return "linear-gradient(180deg,#fb7185,#be123c)";
-}
-
-function render(){
-  const c=document.getElementById("bars");
-  c.innerHTML="";
-  data.forEach((item,i)=>{
-    const wrap=document.createElement("div");
-    wrap.className="bar-item";
-
-    const bar=document.createElement("div");
-    bar.className="bar"+(selected===i?" selected":"");
-    bar.onclick=()=>{selected=i;render()};
-
-    const fill=document.createElement("div");
-    fill.className="fill";
-    fill.style.height=Math.abs(item.value)+"%";
-    fill.style.background=color(Math.abs(item.value));
-
-    bar.appendChild(fill);
-
-    const percent=document.createElement("div");
-    percent.className="percent";
-    percent.textContent=item.value+"%";
-
-    const ctr=document.createElement("div");
-    ctr.className="controls";
-
-    const minus=document.createElement("button");
-    minus.textContent="-1";
-    minus.onclick=()=>{item.value--;save()};
-
-    const plus=document.createElement("button");
-    plus.textContent="+1";
-    plus.onclick=()=>{item.value++;save()};
-
-    ctr.append(minus,plus);
-
-    const name=document.createElement("div");
-    name.className="name";
-    name.textContent=item.name;
-    name.onclick=()=>{
-      const n=prompt("Tên:",item.name);
-      if(n){item.name=n;save();}
-    };
-
-    wrap.append(bar,percent,ctr,name);
-    c.appendChild(wrap);
-  });
-}
-
-function save(){
-  localStorage.setItem("bars",JSON.stringify(data));
-  render();
-}
-
-function addBar(){
-  const n=prompt("Tên thanh:");
-  if(!n) return;
-  data.push({name:n,value:0});
-  save();
-}
-
-function deleteBar(){
-  if(selected===null) return alert("Chạm chọn thanh trước");
-  data.splice(selected,1);
-  selected=null;
-  save();
-}
-
-render();
-</script>
-</body>
-</html>
